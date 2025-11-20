@@ -46,9 +46,10 @@
                   id="firstName"
                   v-model="form.firstName"
                   type="text"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  disabled
+                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p class="mt-1 text-xs text-gray-500">성은 변경할 수 없습니다.</p>
               </div>
 
               <!-- Last Name -->
@@ -60,9 +61,10 @@
                   id="lastName"
                   v-model="form.lastName"
                   type="text"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  disabled
+                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p class="mt-1 text-xs text-gray-500">이름은 변경할 수 없습니다.</p>
               </div>
 
               <!-- Nickname -->
@@ -88,9 +90,10 @@
                   id="birthday"
                   v-model="form.birthday"
                   type="date"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  disabled
+                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p class="mt-1 text-xs text-gray-500">생년월일은 변경할 수 없습니다.</p>
               </div>
 
               <!-- Email (Read-only) -->
@@ -238,22 +241,22 @@ export default {
       this.loadError = ''
 
       try {
-        const response = await authFetch('http://localhost:3000/api/me')
+        const response = await authFetch('http://localhost:3000/auth/users/me')
 
         if (!response.ok) {
           throw new Error('사용자 정보를 불러올 수 없습니다.')
         }
 
         const data = await response.json()
-        this.userInfo = data
+        this.userInfo = data.user
 
         // 폼에 데이터 채우기
-        this.form.firstName = data.first_name || ''
-        this.form.lastName = data.last_name || ''
-        this.form.nickName = data.nick_name || ''
-        this.form.birthday = data.birthday || ''
-        this.form.email = data.email || ''
-        this.form.phoneNumber = data.phone_number || ''
+        this.form.firstName = data.user.first_name || ''
+        this.form.lastName = data.user.last_name || ''
+        this.form.nickName = data.user.nick_name || ''
+        this.form.birthday = data.user.birthday || ''
+        this.form.email = data.user.email || ''
+        this.form.phoneNumber = data.user.phone_number || ''
       } catch (error) {
         this.loadError = error.message || '정보를 불러오는 중 오류가 발생했습니다.'
         console.error('사용자 정보 로드 실패:', error)
@@ -268,14 +271,11 @@ export default {
 
       try {
         const requestBody = {
-          first_name: this.form.firstName,
-          last_name: this.form.lastName,
           nick_name: this.form.nickName,
-          birthday: this.form.birthday,
           phone_number: this.form.phoneNumber
         }
 
-        const response = await authFetch('http://localhost:3000/api/me', {
+        const response = await authFetch('http://localhost:3000/auth/users/me', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -291,10 +291,10 @@ export default {
         const updatedData = await response.json()
 
         // 로컬 스토리지의 사용자 정보도 업데이트
-        localStorage.setItem('user', JSON.stringify(updatedData))
+        localStorage.setItem('user', JSON.stringify(updatedData.user))
 
         this.successMessage = '정보가 성공적으로 수정되었습니다.'
-        this.userInfo = updatedData
+        this.userInfo = updatedData.user
 
         // 3초 후 성공 메시지 자동 제거
         setTimeout(() => {

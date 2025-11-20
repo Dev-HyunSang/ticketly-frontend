@@ -61,11 +61,27 @@
           </button>
         </div>
 
+        <!-- Loading State -->
+        <div v-if="isFeaturedLoading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p class="mt-4 text-gray-600">인기 이벤트를 불러오는 중...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="featuredEvents.length === 0" class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">인기 이벤트가 없습니다</h3>
+          <p class="mt-1 text-gray-500">인기 이벤트가 곧 등록될 예정입니다.</p>
+        </div>
+
         <!-- Event Cards Grid -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
             v-for="event in featuredEvents"
             :key="event.id"
+            @click="goToEventDetail(event.id)"
             class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
           >
             <!-- Event Image -->
@@ -133,21 +149,37 @@
       </div>
     </section>
 
-    <!-- Upcoming Events Section -->
+    <!-- Registered Events Section -->
     <section class="py-16 bg-gray-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center mb-8">
-          <h2 class="text-3xl font-bold text-gray-900">다가오는 이벤트</h2>
-          <button class="text-indigo-600 font-semibold hover:text-indigo-700">
+          <h2 class="text-3xl font-bold text-gray-900">등록된 이벤트</h2>
+          <router-link to="/events" class="text-indigo-600 font-semibold hover:text-indigo-700">
             전체보기 →
-          </button>
+          </router-link>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="isLoading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p class="mt-4 text-gray-600">이벤트를 불러오는 중...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="upcomingEvents.length === 0" class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">등록된 이벤트가 없습니다</h3>
+          <p class="mt-1 text-gray-500">새로운 이벤트가 곧 등록될 예정입니다.</p>
         </div>
 
         <!-- Event List -->
-        <div class="space-y-4">
+        <div v-else class="space-y-4">
           <div
             v-for="event in upcomingEvents"
             :key="event.id"
+            @click="goToEventDetail(event.id)"
             class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
           >
             <div class="flex flex-col md:flex-row gap-6">
@@ -294,80 +326,103 @@ export default {
         { id: 'seminar', name: '세미나' },
         { id: 'networking', name: '네트워킹' }
       ],
-      // 임시 데이터 - 나중에 API로 교체
-      featuredEvents: [
-        {
-          id: 1,
-          title: 'Vue.js 컨퍼런스 2024',
-          description: 'Vue.js 생태계의 최신 트렌드와 베스트 프랙티스를 배우는 컨퍼런스',
-          category: '컨퍼런스',
-          date: '2024-12-15',
-          location: '서울 코엑스',
-          attendees: 250,
-          price: 50000,
-          image: null
-        },
-        {
-          id: 2,
-          title: '스타트업 네트워킹 데이',
-          description: '스타트업 종사자들과 네트워킹하고 인사이트를 나누는 시간',
-          category: '네트워킹',
-          date: '2024-12-20',
-          location: '강남역 D2 팩토리',
-          attendees: 100,
-          price: 0,
-          image: null
-        },
-        {
-          id: 3,
-          title: 'AI/ML 워크샵',
-          description: '실전 머신러닝 프로젝트를 통해 배우는 AI 기초',
-          category: '워크샵',
-          date: '2024-12-18',
-          location: '판교 스타트업캠퍼스',
-          attendees: 50,
-          price: 80000,
-          image: null
-        }
-      ],
-      upcomingEvents: [
-        {
-          id: 4,
-          title: 'UX/UI 디자인 세미나',
-          description: '사용자 경험을 개선하는 디자인 원칙과 실무 적용 방법',
-          category: '세미나',
-          date: '2024-12-22',
-          location: '홍대 WeWork',
-          attendees: 80,
-          price: 30000,
-          image: null
-        },
-        {
-          id: 5,
-          title: '개발자 커리어 밋업',
-          description: '시니어 개발자들과 함께하는 커리어 성장 전략',
-          category: '밋업',
-          date: '2024-12-25',
-          location: '선릉역 패스트파이브',
-          attendees: 60,
-          price: 0,
-          image: null
-        },
-        {
-          id: 6,
-          title: '블록체인 기술 컨퍼런스',
-          description: '최신 블록체인 기술과 실제 활용 사례',
-          category: '컨퍼런스',
-          date: '2024-12-28',
-          location: '서울 63빌딩',
-          attendees: 200,
-          price: 100000,
-          image: null
-        }
-      ]
+      isLoading: false,
+      isFeaturedLoading: false,
+      featuredEvents: [],
+      upcomingEvents: []
     }
   },
+  mounted () {
+    this.fetchFeaturedEvents()
+    this.fetchUpcomingEvents()
+  },
   methods: {
+    async fetchFeaturedEvents () {
+      this.isFeaturedLoading = true
+      try {
+        const response = await fetch('http://localhost:3000/public/events/popular')
+
+        if (!response.ok) {
+          throw new Error('인기 이벤트를 불러올 수 없습니다.')
+        }
+
+        const data = await response.json()
+
+        // API 응답 데이터를 화면에 맞게 변환
+        this.featuredEvents = data.events.map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          category: this.mapCategory(event.organization_name),
+          date: event.start_time,
+          location: event.location,
+          venue: event.venue,
+          attendees: event.total_tickets - event.available_tickets,
+          totalTickets: event.total_tickets,
+          availableTickets: event.available_tickets,
+          price: event.ticket_price,
+          currency: event.currency,
+          status: event.status,
+          organizationName: event.organization_name,
+          image: null
+        }))
+      } catch (error) {
+        console.error('인기 이벤트 조회 실패:', error)
+        this.featuredEvents = []
+      } finally {
+        this.isFeaturedLoading = false
+      }
+    },
+    async fetchUpcomingEvents () {
+      this.isLoading = true
+      try {
+        const response = await fetch('http://localhost:3000/public/events/')
+
+        if (!response.ok) {
+          throw new Error('이벤트를 불러올 수 없습니다.')
+        }
+
+        const data = await response.json()
+
+        // API 응답 데이터를 화면에 맞게 변환
+        this.upcomingEvents = data.events.map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          category: this.mapCategory(event.organization_name),
+          date: event.start_time,
+          location: event.location,
+          venue: event.venue,
+          attendees: event.total_tickets - event.available_tickets,
+          totalTickets: event.total_tickets,
+          availableTickets: event.available_tickets,
+          price: event.ticket_price,
+          currency: event.currency,
+          status: event.status,
+          organizationName: event.organization_name,
+          image: null
+        }))
+      } catch (error) {
+        console.error('이벤트 조회 실패:', error)
+        this.upcomingEvents = []
+      } finally {
+        this.isLoading = false
+      }
+    },
+    mapCategory (organizationName) {
+      // 조직 이름에 따라 카테고리 매핑 (임시)
+      if (!organizationName) {
+        return '기타'
+      }
+      if (organizationName.includes('Tech') || organizationName.includes('기술')) {
+        return '컨퍼런스'
+      } else if (organizationName.includes('Meetup')) {
+        return '밋업'
+      } else if (organizationName.includes('Workshop')) {
+        return '워크샵'
+      }
+      return '기타'
+    },
     formatDate (dateString) {
       const date = new Date(dateString)
       const year = date.getFullYear()
@@ -376,31 +431,14 @@ export default {
       return `${year}.${month}.${day}`
     },
     formatPrice (price) {
+      if (price === undefined || price === null) {
+        return '0'
+      }
       return price.toLocaleString('ko-KR')
+    },
+    goToEventDetail (eventId) {
+      this.$router.push(`/events/${eventId}`)
     }
   }
-  // API 연동을 위한 예시 (나중에 사용)
-  // mounted() {
-  //   this.fetchFeaturedEvents()
-  //   this.fetchUpcomingEvents()
-  // },
-  // methods: {
-  //   async fetchFeaturedEvents() {
-  //     try {
-  //       const response = await fetch('YOUR_API_URL/events/featured')
-  //       this.featuredEvents = await response.json()
-  //     } catch (error) {
-  //       console.error('Failed to fetch featured events:', error)
-  //     }
-  //   },
-  //   async fetchUpcomingEvents() {
-  //     try {
-  //       const response = await fetch('YOUR_API_URL/events/upcoming')
-  //       this.upcomingEvents = await response.json()
-  //     } catch (error) {
-  //       console.error('Failed to fetch upcoming events:', error)
-  //     }
-  //   }
-  // }
 }
 </script>
