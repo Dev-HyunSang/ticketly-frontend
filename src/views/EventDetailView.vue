@@ -43,9 +43,9 @@
           </ol>
         </nav>
 
-        <div class="grid lg:grid-cols-3 gap-8">
+        <div class="grid lg:grid-cols-3 gap-6 lg:gap-8">
           <!-- Main Content -->
-          <div class="lg:col-span-2 space-y-6">
+          <div class="lg:col-span-2 space-y-4 sm:space-y-6">
             <!-- Event Image -->
             <div class="bg-white rounded-xl overflow-hidden shadow-sm">
               <div class="relative h-96 bg-gradient-to-br from-indigo-100 to-purple-100">
@@ -64,12 +64,12 @@
             </div>
 
             <!-- Event Info -->
-            <div class="bg-white rounded-xl p-8 shadow-sm">
+            <div class="bg-white rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm">
               <div class="mb-6">
                 <span class="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-600 mb-4">
                   {{ event.category }}
                 </span>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ event.title }}</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{{ event.title }}</h1>
                 <p class="text-lg text-gray-600">{{ event.organizationName }}</p>
               </div>
 
@@ -126,7 +126,7 @@
 
               <!-- Description -->
               <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">이벤트 소개</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">이벤트 소개</h2>
                 <p class="text-gray-600 whitespace-pre-wrap leading-relaxed">{{ event.description }}</p>
               </div>
             </div>
@@ -134,7 +134,7 @@
 
           <!-- Sidebar -->
           <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl p-6 shadow-sm sticky top-6">
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm lg:sticky lg:top-6">
               <div class="mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-2">티켓 예매</h3>
                 <div class="flex items-baseline mb-4">
@@ -170,16 +170,17 @@
                 </div>
 
                 <!-- Purchase Button -->
-                <button
+                <router-link
                   v-if="event.availableTickets > 0"
-                  class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+                  :to="`/events/${event.id}/purchase`"
+                  class="block w-full bg-indigo-600 text-white py-3.5 sm:py-3 text-base rounded-lg font-semibold hover:bg-indigo-700 active:bg-indigo-800 transition shadow-md text-center touch-manipulation"
                 >
                   티켓 예매하기
-                </button>
+                </router-link>
                 <button
                   v-else
                   disabled
-                  class="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  class="w-full bg-gray-300 text-gray-500 py-3.5 sm:py-3 text-base rounded-lg font-semibold cursor-not-allowed"
                 >
                   매진되었습니다
                 </button>
@@ -208,17 +209,17 @@
               <div class="border-t border-gray-200 pt-6 mt-6">
                 <h4 class="font-semibold text-gray-900 mb-4">공유하기</h4>
                 <div class="flex gap-2">
-                  <button class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition">
+                  <button class="flex-1 border border-gray-300 py-2.5 sm:py-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition touch-manipulation">
                     <svg class="w-5 h-5 mx-auto text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
                     </svg>
                   </button>
-                  <button class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition">
+                  <button class="flex-1 border border-gray-300 py-2.5 sm:py-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition touch-manipulation">
                     <svg class="w-5 h-5 mx-auto text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
                     </svg>
                   </button>
-                  <button class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition">
+                  <button class="flex-1 border border-gray-300 py-2.5 sm:py-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition touch-manipulation">
                     <svg class="w-5 h-5 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                     </svg>
@@ -286,6 +287,9 @@ export default {
           updatedAt: eventData.updated_at,
           image: null
         }
+
+        // 페이지 타이틀 업데이트
+        document.title = `${eventData.title} - Ticketly`
       } catch (error) {
         console.error('이벤트 조회 실패:', error)
         this.error = error.message
