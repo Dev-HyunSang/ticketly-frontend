@@ -1,5 +1,11 @@
 // JWT 토큰 관련 유틸리티 함수
 
+// 토큰 자동 갱신 인터벌 ID
+let refreshIntervalId = null
+
+// 토큰 갱신 주기 (15분 = 900000ms)
+const REFRESH_INTERVAL = 15 * 60 * 1000
+
 /**
  * 로컬 스토리지에서 액세스 토큰 가져오기
  */
@@ -48,6 +54,12 @@ export function setAuthData (accessToken, refreshToken, user) {
  * 로그아웃 - 모든 인증 정보 삭제
  */
 export function logout () {
+  // 토큰 자동 갱신 중지 (순환 참조 방지를 위해 직접 처리)
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId)
+    refreshIntervalId = null
+  }
+
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user')
@@ -141,4 +153,66 @@ export async function authFetch (url, options = {}) {
   }
 
   return response
+}
+
+/**
+ * 토큰 자동 갱신 시작 (15분마다)
+ */
+export function startTokenRefresh () {
+  // 이미 실행 중이면 중복 실행 방지
+  if (refreshIntervalId) {
+    return
+  }
+
+  // 로그인 상태가 아니면 시작하지 않음
+  if (!isAuthenticated()) {
+    return
+  }
+
+  console.log('토큰 자동 갱신 시작 (15분 주기)')
+
+  refreshIntervalId = setInterval(async () => {
+    try {
+      if (isAuthenticated()) {
+        console.log('토큰 자동 갱신 중...')
+        await refreshAccessToken()
+        console.log('토큰 갱신 완료')
+      } else {
+        // 로그아웃 상태면 자동 갱신 중지
+        stopTokenRefresh()
+      }
+    } catch (error) {
+      console.error('토큰 자동 갱신 실패:', error)
+      stopTokenRefresh()
+    }
+  }, REFRESH_INTERVAL)
+}
+
+/**
+ * 토큰 자동 갱신 중지
+ */
+export function stopTokenRefresh () {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId)
+    refreshIntervalId = null
+    console.log('토큰 자동 갱신 중지')
+  }
+}
+
+/**
+ * 앱 초기화 시 토큰 상태 확인 및 자동 갱신 설정
+ */
+export async function initAuth () {
+  if (isAuthenticated()) {
+    try {
+      // 앱 시작 시 토큰 즉시 갱신 시도
+      await refreshAccessToken()
+      // 자동 갱신 시작
+      startTokenRefresh()
+    } catch (error) {
+      console.error('초기 토큰 갱신 실패:', error)
+      // 갱신 실패 시 로그아웃
+      logout()
+    }
+  }
 }

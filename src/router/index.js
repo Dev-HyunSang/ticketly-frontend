@@ -64,6 +64,12 @@ const routes = [
     name: 'payment-fail',
     component: () => import(/* webpackChunkName: "payment-fail" */ '../views/PaymentFailView.vue'),
     meta: { title: '결제 실패 - Ticketly' }
+  },
+  {
+    path: '/my-tickets',
+    name: 'my-tickets',
+    component: () => import(/* webpackChunkName: "my-tickets" */ '../views/MyTicketsView.vue'),
+    meta: { title: '내 티켓 - Ticketly' }
   }
 ]
 

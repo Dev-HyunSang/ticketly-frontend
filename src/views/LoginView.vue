@@ -137,7 +137,7 @@
 </template>
 
 <script>
-import { setAuthData } from '@/utils/auth'
+import { setAuthData, startTokenRefresh } from '@/utils/auth'
 
 export default {
   name: 'LoginView',
@@ -182,6 +182,9 @@ export default {
 
         // JWT 토큰 및 사용자 정보 저장
         setAuthData(data.access_token, data.refresh_token, data.user)
+
+        // 토큰 자동 갱신 시작
+        startTokenRefresh()
 
         // 로그인 상태 유지 옵션 저장
         if (this.form.rememberMe) {

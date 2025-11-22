@@ -9,6 +9,23 @@
         </div>
       </div>
 
+      <!-- Error State -->
+      <div v-else-if="error" class="bg-white rounded-xl p-6 sm:p-8 shadow-sm text-center">
+        <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">결제 처리 중 오류가 발생했습니다</h2>
+        <p class="text-gray-600 mb-8">{{ error }}</p>
+        <button
+          @click="$router.push('/')"
+          class="bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition"
+        >
+          홈으로 돌아가기
+        </button>
+      </div>
+
       <!-- Success State -->
       <div v-else class="bg-white rounded-xl p-6 sm:p-8 shadow-sm text-center">
         <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -18,7 +35,7 @@
         </div>
         <h2 class="text-2xl font-bold text-gray-900 mb-2">결제가 완료되었습니다!</h2>
         <p class="text-gray-600 mb-8">
-          티켓이 등록하신 이메일({{ paymentInfo.buyerEmail }})로 전송됩니다.
+          티켓이 등록하신 이메일({{ displayEmail }})로 전송됩니다.
         </p>
 
         <div class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
@@ -30,19 +47,19 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">이벤트</span>
-              <span class="text-gray-900">{{ paymentInfo.eventTitle }}</span>
+              <span class="text-gray-900">{{ displayEventTitle }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">티켓 수량</span>
-              <span class="text-gray-900">{{ paymentInfo.ticketQuantity }}매</span>
+              <span class="text-gray-900">{{ displayTicketQuantity }}매</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">결제 금액</span>
               <span class="text-gray-900 font-semibold">{{ formatPrice(amount) }}원</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">결제 수단</span>
-              <span class="text-gray-900">{{ paymentType }}</span>
+              <span class="text-gray-600">결제 상태</span>
+              <span class="text-gray-900">{{ displayStatus }}</span>
             </div>
           </div>
         </div>
@@ -67,11 +84,14 @@
 </template>
 
 <script>
+import { getAccessToken } from '@/utils/auth'
+
 export default {
   name: 'PaymentSuccessView',
   data () {
     return {
       isLoading: true,
+      error: null,
       orderId: '',
       amount: 0,
       paymentType: '',
@@ -83,7 +103,28 @@ export default {
         buyerName: '',
         buyerEmail: '',
         buyerPhone: ''
+      },
+      paymentResult: null
+    }
+  },
+  computed: {
+    displayEmail () {
+      return this.paymentResult?.buyer_email || this.paymentInfo.buyerEmail || ''
+    },
+    displayEventTitle () {
+      return this.paymentResult?.event_title || this.paymentInfo.eventTitle || ''
+    },
+    displayTicketQuantity () {
+      return this.paymentResult?.ticket_quantity || this.paymentInfo.ticketQuantity || 0
+    },
+    displayStatus () {
+      const statusMap = {
+        pending: '결제 대기',
+        completed: '결제 완료',
+        cancelled: '결제 취소',
+        refunded: '환불 완료'
       }
+      return statusMap[this.paymentResult?.status] || '결제 완료'
     }
   },
   mounted () {
@@ -104,24 +145,60 @@ export default {
           this.paymentInfo = JSON.parse(storedInfo)
         }
 
-        // 실제로는 여기서 백엔드 API를 호출하여 결제 승인 처리를 해야 합니다
-        // const response = await fetch('http://localhost:3000/api/payments/confirm', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     paymentKey: query.paymentKey,
-        //     orderId: query.orderId,
-        //     amount: query.amount
-        //   })
-        // })
+        // 서버에 결제 정보 전송
+        const result = await this.sendPaymentToServer()
+        this.paymentResult = result.payment
+
+        // 서버 응답으로 화면 정보 업데이트
+        if (this.paymentResult) {
+          this.orderId = this.paymentResult.order_id
+          this.amount = this.paymentResult.total_price
+        }
 
         // 결제 정보 정리
         localStorage.removeItem('pendingPayment')
       } catch (error) {
         console.error('결제 확인 실패:', error)
+        this.error = error.message || '결제 처리 중 오류가 발생했습니다.'
       } finally {
         this.isLoading = false
       }
+    },
+    async sendPaymentToServer () {
+      // 토큰 가져오기
+      const token = getAccessToken()
+      if (!token) {
+        throw new Error('로그인이 필요합니다.')
+      }
+
+      // 결제 정보가 없는 경우
+      if (!this.paymentInfo.eventId) {
+        throw new Error('결제 정보를 찾을 수 없습니다.')
+      }
+
+      const response = await fetch('http://localhost:3000/api/payments/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          event_id: this.paymentInfo.eventId,
+          event_title: this.paymentInfo.eventTitle,
+          ticket_quantity: this.paymentInfo.ticketQuantity,
+          total_price: this.paymentInfo.totalPrice,
+          buyer_name: this.paymentInfo.buyerName,
+          buyer_email: this.paymentInfo.buyerEmail,
+          buyer_phone: this.paymentInfo.buyerPhone
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || '결제 정보 저장에 실패했습니다.')
+      }
+
+      return response.json()
     },
     getPaymentTypeName (type) {
       const typeMap = {
