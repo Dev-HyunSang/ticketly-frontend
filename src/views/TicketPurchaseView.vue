@@ -156,6 +156,55 @@
               </div>
             </div>
 
+            <!-- Payment Method -->
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
+              <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">결제 수단</h2>
+              <div class="grid grid-cols-3 gap-3">
+                <button
+                  @click="paymentMethod = 'card'"
+                  :class="[
+                    'py-3 px-4 rounded-lg border-2 text-center transition touch-manipulation',
+                    paymentMethod === 'card'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ]"
+                >
+                  <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  <span class="text-sm font-medium">카드</span>
+                </button>
+                <button
+                  @click="paymentMethod = 'virtual'"
+                  :class="[
+                    'py-3 px-4 rounded-lg border-2 text-center transition touch-manipulation',
+                    paymentMethod === 'virtual'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ]"
+                >
+                  <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span class="text-sm font-medium">가상계좌</span>
+                </button>
+                <button
+                  @click="paymentMethod = 'easy'"
+                  :class="[
+                    'py-3 px-4 rounded-lg border-2 text-center transition touch-manipulation',
+                    paymentMethod === 'easy'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ]"
+                >
+                  <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span class="text-sm font-medium">간편결제</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Terms and Conditions -->
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm">
               <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">약관 동의</h2>
@@ -303,6 +352,8 @@
 </template>
 
 <script>
+import { requestCardPayment, requestVirtualAccountPayment, requestEasyPayment, generateOrderId } from '@/composables/useTossPayments'
+
 export default {
   name: 'TicketPurchaseView',
   data () {
@@ -316,6 +367,7 @@ export default {
       isPurchasing: false,
       purchaseComplete: false,
       isUserInfoLoaded: false,
+      paymentMethod: 'card',
       form: {
         sameAsUser: false,
         name: '',
@@ -421,26 +473,49 @@ export default {
       this.isPurchasing = true
 
       try {
-        // API 호출 시뮬레이션 (실제로는 백엔드 API를 호출해야 합니다)
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 결제 정보 저장 (결제 성공 후 사용)
+        const paymentInfo = {
+          eventId: this.eventId,
+          eventTitle: this.event.title,
+          ticketQuantity: this.ticketQuantity,
+          totalPrice: this.totalPrice,
+          buyerName: this.form.name,
+          buyerEmail: this.form.email,
+          buyerPhone: this.form.phone
+        }
+        localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo))
 
-        // 여기에 실제 결제 API 호출 로직을 추가합니다
-        // const response = await fetch('http://localhost:3000/api/tickets/purchase', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     event_id: this.eventId,
-        //     quantity: this.ticketQuantity,
-        //     buyer_name: this.form.name,
-        //     buyer_email: this.form.email,
-        //     buyer_phone: this.form.phone
-        //   })
-        // })
+        // Toss Payments 결제 요청
+        const orderId = generateOrderId()
+        const paymentOptions = {
+          amount: this.totalPrice,
+          orderId: orderId,
+          orderName: `${this.event.title} 티켓 ${this.ticketQuantity}매`,
+          customerName: this.form.name,
+          customerEmail: this.form.email
+        }
 
-        this.purchaseComplete = true
+        // 선택한 결제 수단에 따라 결제 요청
+        switch (this.paymentMethod) {
+          case 'card':
+            await requestCardPayment(paymentOptions)
+            break
+          case 'virtual':
+            await requestVirtualAccountPayment(paymentOptions)
+            break
+          case 'easy':
+            await requestEasyPayment(paymentOptions)
+            break
+        }
       } catch (error) {
-        console.error('티켓 구매 실패:', error)
-        this.errorMessage = '결제 중 오류가 발생했습니다. 다시 시도해주세요.'
+        console.error('결제 요청 실패:', error)
+        // 사용자가 결제를 취소한 경우
+        if (error.code === 'USER_CANCEL') {
+          this.errorMessage = '결제가 취소되었습니다.'
+        } else {
+          this.errorMessage = error.message || '결제 중 오류가 발생했습니다. 다시 시도해주세요.'
+        }
+        localStorage.removeItem('pendingPayment')
       } finally {
         this.isPurchasing = false
       }

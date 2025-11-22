@@ -52,6 +52,18 @@ const routes = [
     name: 'ticket-purchase',
     component: () => import(/* webpackChunkName: "ticket-purchase" */ '../views/TicketPurchaseView.vue'),
     meta: { title: '티켓 예매 - Ticketly' }
+  },
+  {
+    path: '/payment/success',
+    name: 'payment-success',
+    component: () => import(/* webpackChunkName: "payment-success" */ '../views/PaymentSuccessView.vue'),
+    meta: { title: '결제 완료 - Ticketly' }
+  },
+  {
+    path: '/payment/fail',
+    name: 'payment-fail',
+    component: () => import(/* webpackChunkName: "payment-fail" */ '../views/PaymentFailView.vue'),
+    meta: { title: '결제 실패 - Ticketly' }
   }
 ]
 
