@@ -352,7 +352,8 @@
 </template>
 
 <script>
-import { requestCardPayment, requestVirtualAccountPayment, requestEasyPayment, generateOrderId } from '@/composables/useTossPayments'
+import { requestCardPayment, requestVirtualAccountPayment, requestEasyPayment } from '@/composables/useTossPayments'
+import { getAccessToken } from '@/utils/auth'
 
 export default {
   name: 'TicketPurchaseView',
@@ -473,23 +474,17 @@ export default {
       this.isPurchasing = true
 
       try {
-        // 결제 정보 저장 (결제 성공 후 사용)
-        const paymentInfo = {
-          eventId: this.eventId,
-          eventTitle: this.event.title,
-          ticketQuantity: this.ticketQuantity,
-          totalPrice: this.totalPrice,
-          buyerName: this.form.name,
-          buyerEmail: this.form.email,
-          buyerPhone: this.form.phone
-        }
-        localStorage.setItem('pendingPayment', JSON.stringify(paymentInfo))
+        // 1. 서버에 결제 생성 요청
+        const payment = await this.createPayment()
 
-        // Toss Payments 결제 요청
-        const orderId = generateOrderId()
+        // 결제 정보를 localStorage에 저장
+        localStorage.setItem('pendingPaymentId', payment.id)
+        localStorage.setItem('pendingOrderId', payment.order_id)
+
+        // 2. Toss Payments 결제 요청
         const paymentOptions = {
           amount: this.totalPrice,
-          orderId: orderId,
+          orderId: payment.order_id,
           orderName: `${this.event.title} 티켓 ${this.ticketQuantity}매`,
           customerName: this.form.name,
           customerEmail: this.form.email
@@ -515,10 +510,42 @@ export default {
         } else {
           this.errorMessage = error.message || '결제 중 오류가 발생했습니다. 다시 시도해주세요.'
         }
-        localStorage.removeItem('pendingPayment')
+        localStorage.removeItem('pendingPaymentId')
+        localStorage.removeItem('pendingOrderId')
       } finally {
         this.isPurchasing = false
       }
+    },
+    async createPayment () {
+      const token = getAccessToken()
+      if (!token) {
+        throw new Error('로그인이 필요합니다.')
+      }
+
+      const response = await fetch('http://localhost:3000/api/payments/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          event_id: this.eventId,
+          event_title: this.event.title,
+          ticket_quantity: this.ticketQuantity,
+          total_price: this.totalPrice,
+          buyer_name: this.form.name,
+          buyer_email: this.form.email,
+          buyer_phone: this.form.phone
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || '결제 생성에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      return data.payment
     },
     formatDateTime (dateString) {
       const date = new Date(dateString)

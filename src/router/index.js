@@ -70,6 +70,18 @@ const routes = [
     name: 'my-tickets',
     component: () => import(/* webpackChunkName: "my-tickets" */ '../views/MyTicketsView.vue'),
     meta: { title: '내 티켓 - Ticketly' }
+  },
+  {
+    path: '/events/create',
+    name: 'event-create',
+    component: () => import(/* webpackChunkName: "event-create" */ '../views/EventCreateView.vue'),
+    meta: { title: '이벤트 개설하기 - Ticketly' }
+  },
+  {
+    path: '/organizations/create',
+    name: 'organization-create',
+    component: () => import(/* webpackChunkName: "organization-create" */ '../views/OrganizationCreateView.vue'),
+    meta: { title: '그룹 개설하기 - Ticketly' }
   }
 ]
 

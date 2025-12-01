@@ -14,7 +14,13 @@
             <router-link to="/" class="text-gray-700 hover:text-indigo-600 font-medium transition">
               홈
             </router-link>
+            <router-link to="/events" class="text-gray-700 hover:text-indigo-600 font-medium transition">
+              이벤트
+            </router-link>
             <template v-if="isLoggedIn">
+              <router-link to="/events/create" class="text-gray-700 hover:text-indigo-600 font-medium transition">
+                함께 이벤트 개설하기
+              </router-link>
               <div class="relative">
                 <button
                   @click="userMenuOpen = !userMenuOpen"
@@ -75,7 +81,20 @@
           <router-link to="/" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
             홈
           </router-link>
+          <router-link to="/events" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+            이벤트
+          </router-link>
           <template v-if="isLoggedIn">
+            <router-link to="/events/create" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+              이벤트 개설하기
+            </router-link>
+            <router-link to="/my-tickets" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+              구매한 티켓
+            </router-link>
+            <router-link to="/my-profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+              내 정보
+            </router-link>
+            <div class="border-t border-gray-200 my-2"></div>
             <div class="px-4 py-2 text-gray-700 font-medium">
               {{ userName }}님
             </div>

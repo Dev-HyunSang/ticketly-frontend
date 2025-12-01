@@ -138,15 +138,10 @@ export default {
         this.orderId = query.orderId || ''
         this.amount = parseInt(query.amount) || 0
         this.paymentType = this.getPaymentTypeName(query.paymentType)
+        const paymentKey = query.paymentKey || ''
 
-        // localStorage에서 결제 정보 가져오기
-        const storedInfo = localStorage.getItem('pendingPayment')
-        if (storedInfo) {
-          this.paymentInfo = JSON.parse(storedInfo)
-        }
-
-        // 서버에 결제 정보 전송
-        const result = await this.sendPaymentToServer()
+        // 서버에 결제 완료 요청
+        const result = await this.completePayment(this.orderId, paymentKey)
         this.paymentResult = result.payment
 
         // 서버 응답으로 화면 정보 업데이트
@@ -164,7 +159,7 @@ export default {
         this.isLoading = false
       }
     },
-    async sendPaymentToServer () {
+    async completePayment (orderId, paymentKey) {
       // 토큰 가져오기
       const token = getAccessToken()
       if (!token) {
@@ -172,30 +167,25 @@ export default {
       }
 
       // 결제 정보가 없는 경우
-      if (!this.paymentInfo.eventId) {
+      if (!orderId || !paymentKey) {
         throw new Error('결제 정보를 찾을 수 없습니다.')
       }
 
-      const response = await fetch('http://localhost:3000/api/payments/', {
+      const response = await fetch('http://localhost:3000/api/payments/complete', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          event_id: this.paymentInfo.eventId,
-          event_title: this.paymentInfo.eventTitle,
-          ticket_quantity: this.paymentInfo.ticketQuantity,
-          total_price: this.paymentInfo.totalPrice,
-          buyer_name: this.paymentInfo.buyerName,
-          buyer_email: this.paymentInfo.buyerEmail,
-          buyer_phone: this.paymentInfo.buyerPhone
+          order_id: orderId,
+          payment_key: paymentKey
         })
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || '결제 정보 저장에 실패했습니다.')
+        throw new Error(errorData.message || '결제 완료 처리에 실패했습니다.')
       }
 
       return response.json()

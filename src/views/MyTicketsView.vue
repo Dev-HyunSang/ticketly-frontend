@@ -3,6 +3,42 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">내 티켓</h1>
 
+      <!-- Tabs -->
+      <div class="mb-6">
+        <div class="border-b border-gray-200">
+          <nav class="-mb-px flex space-x-8">
+            <button
+              @click="activeTab = 'active'"
+              :class="[
+                'py-4 px-1 border-b-2 font-medium text-sm transition',
+                activeTab === 'active'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              활성 티켓
+              <span v-if="activeTickets.length > 0" class="ml-2 px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-600">
+                {{ activeTickets.length }}
+              </span>
+            </button>
+            <button
+              @click="activeTab = 'cancelled'"
+              :class="[
+                'py-4 px-1 border-b-2 font-medium text-sm transition',
+                activeTab === 'cancelled'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              취소된 티켓
+              <span v-if="cancelledTickets.length > 0" class="ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                {{ cancelledTickets.length }}
+              </span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="isLoading" class="flex items-center justify-center min-h-[300px]">
         <div class="text-center">
@@ -29,15 +65,20 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="payments.length === 0" class="bg-white rounded-xl p-6 sm:p-8 shadow-sm text-center">
+      <div v-else-if="currentTabTickets.length === 0" class="bg-white rounded-xl p-6 sm:p-8 shadow-sm text-center">
         <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">구매한 티켓이 없습니다</h3>
-        <p class="text-gray-600 mb-6">이벤트를 둘러보고 티켓을 구매해보세요!</p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          {{ activeTab === 'active' ? '구매한 티켓이 없습니다' : '취소된 티켓이 없습니다' }}
+        </h3>
+        <p class="text-gray-600 mb-6">
+          {{ activeTab === 'active' ? '이벤트를 둘러보고 티켓을 구매해보세요!' : '취소한 티켓 내역이 없습니다.' }}
+        </p>
         <router-link
+          v-if="activeTab === 'active'"
           to="/events"
           class="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
         >
@@ -48,7 +89,7 @@
       <!-- Tickets List -->
       <div v-else class="space-y-4">
         <div
-          v-for="payment in payments"
+          v-for="payment in currentTabTickets"
           :key="payment.id"
           class="bg-white rounded-xl shadow-sm overflow-hidden"
         >
@@ -86,6 +127,13 @@
 
               <!-- Actions -->
               <div class="flex sm:flex-col gap-2">
+                <button
+                  v-if="activeTab === 'active'"
+                  @click="showQRCode(payment)"
+                  class="flex-1 sm:flex-none px-4 py-2 text-sm text-center bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  입장권 확인하기
+                </button>
                 <router-link
                   :to="`/events/${payment.event_id}`"
                   class="flex-1 sm:flex-none px-4 py-2 text-sm text-center border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
@@ -93,7 +141,7 @@
                   이벤트 보기
                 </router-link>
                 <button
-                  v-if="payment.status === 'pending'"
+                  v-if="activeTab === 'active' && (payment.status === 'pending' || payment.status === 'completed')"
                   @click="showCancelConfirm(payment)"
                   class="flex-1 sm:flex-none px-4 py-2 text-sm text-center border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition"
                 >
@@ -120,6 +168,49 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- QR Code Modal -->
+      <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900">입장권 QR 코드</h3>
+            <button
+              @click="showQRModal = false"
+              class="text-gray-400 hover:text-gray-600"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="text-center">
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+              <h4 class="font-semibold text-gray-900 mb-2">{{ selectedPayment?.event_title }}</h4>
+              <p class="text-sm text-gray-600">주문번호: {{ selectedPayment?.order_id }}</p>
+            </div>
+
+            <!-- QR Code Canvas -->
+            <div class="flex justify-center mb-4">
+              <canvas ref="qrCanvas" class="border-2 border-gray-200 rounded-lg"></canvas>
+            </div>
+
+            <p class="text-sm text-gray-500 mb-2">
+              입장 시 이 QR 코드를 제시해주세요
+            </p>
+            <p class="text-xs text-gray-400">
+              티켓 수량: {{ selectedPayment?.ticket_quantity }}매
+            </p>
+          </div>
+
+          <button
+            @click="showQRModal = false"
+            class="w-full mt-6 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            닫기
+          </button>
         </div>
       </div>
 
@@ -163,8 +254,27 @@ export default {
       isLoading: false,
       error: null,
       showCancelModal: false,
+      showQRModal: false,
       selectedPayment: null,
-      isCancelling: false
+      isCancelling: false,
+      activeTab: 'active'
+    }
+  },
+  computed: {
+    activeTickets () {
+      return this.payments.filter(payment =>
+        payment.status !== 'failed' &&
+        payment.status !== 'cancelled' &&
+        payment.status !== 'refunded'
+      )
+    },
+    cancelledTickets () {
+      return this.payments.filter(payment =>
+        payment.status === 'cancelled' || payment.status === 'refunded'
+      )
+    },
+    currentTabTickets () {
+      return this.activeTab === 'active' ? this.activeTickets : this.cancelledTickets
     }
   },
   mounted () {
@@ -232,6 +342,78 @@ export default {
       const day = String(date.getDate()).padStart(2, '0')
       return `${year}.${month}.${day}`
     },
+    showQRCode (payment) {
+      this.selectedPayment = payment
+      this.showQRModal = true
+      this.$nextTick(() => {
+        this.generateQRCode(payment.order_id)
+      })
+    },
+    generateQRCode (orderId) {
+      const canvas = this.$refs.qrCanvas
+      if (!canvas) return
+
+      const size = 256
+      canvas.width = size
+      canvas.height = size
+
+      const ctx = canvas.getContext('2d')
+
+      // QR 코드 데이터 (주문번호 기반)
+      const qrData = `TICKET:${orderId}`
+
+      // 간단한 QR 코드 시각화 (실제로는 qrcode 라이브러리 사용 권장)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, size, size)
+
+      // 테두리
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 2
+      ctx.strokeRect(0, 0, size, size)
+
+      // QR 패턴 생성 (간단한 버전)
+      const cellSize = 8
+      const cells = size / cellSize
+
+      ctx.fillStyle = '#000000'
+
+      // 주문번호를 기반으로 고유한 패턴 생성
+      const hash = this.hashString(qrData)
+
+      for (let y = 0; y < cells; y++) {
+        for (let x = 0; x < cells; x++) {
+          const index = y * cells + x
+          if ((hash >> (index % 32)) & 1) {
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
+          }
+        }
+      }
+
+      // 중앙에 로고 영역
+      const centerStart = size / 2 - 32
+      const centerSize = 64
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(centerStart, centerStart, centerSize, centerSize)
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 2
+      ctx.strokeRect(centerStart, centerStart, centerSize, centerSize)
+
+      // 중앙 텍스트
+      ctx.fillStyle = '#000000'
+      ctx.font = 'bold 12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('TICKETLY', size / 2, size / 2)
+    },
+    hashString (str) {
+      let hash = 0
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i)
+        hash = ((hash << 5) - hash) + char
+        hash = hash & hash
+      }
+      return hash
+    },
     showCancelConfirm (payment) {
       this.selectedPayment = payment
       this.showCancelModal = true
@@ -243,8 +425,8 @@ export default {
 
       try {
         const token = getAccessToken()
-        const response = await fetch(`http://localhost:3000/api/payments/${this.selectedPayment.id}/cancel`, {
-          method: 'POST',
+        const response = await fetch(`http://localhost:3000/api/payments/${this.selectedPayment.id}`, {
+          method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`
           }
